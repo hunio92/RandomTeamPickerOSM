@@ -1,9 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "Leagues.h"
 
+struct OSM
+{
+    QStringList Leagues;
+    QMap<QString, QStringList> LeagueAndTeams;
+};
 
-randomTeamPicker::leaguesAndTeams::OSM leagues;
+OSM leagues;
 QStringList listOfTeams;
 QList<QLabel*> lLabel;
 QList<QTextEdit*> lEditText;
@@ -14,8 +18,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->setFixedSize(QSize(930, 950));
+
+    QIcon icon(":/images/randomIcon.ico");
+    this->setWindowIcon(icon);
+
+    // ComboBox Leagues
     ui->comboBoxLeagues->setGeometry(QRect(this->width() * 0.20, this->height() * 0.01, 100, 30));
     ui->comboBoxLeagues->setFont(defaultFont);
+
+    // Push Button Generate
+    ui->generateButton->setGeometry(QRect(this->width() * 0.70, this->height() * 0.01, 100, 30));
+    ui->generateButton->setFont(defaultFont);
 
     // Vertical Line separate in half the main window
     QFrame *lineSplitInHalf = new QFrame(this);
@@ -46,6 +60,29 @@ MainWindow::MainWindow(QWidget *parent) :
     pLabelTeamTxt->move(this->width() * 0.35,  ui->comboBoxLeagues->height() * 2);
     pLabelTeamTxt->setFont(defaultFont);
     pLabelTeamTxt->setStyleSheet("QLabel { text-decoration: underline; }");
+
+    //Results Text
+    QLabel* pLabelResultsTxt = new QLabel(this);
+    pLabelResultsTxt->setObjectName("labelResultsText");
+    pLabelResultsTxt->setText("Results");
+    pLabelResultsTxt->move(this->width() * 0.72,  ui->comboBoxLeagues->height() * 2);
+    pLabelResultsTxt->setFont(defaultFont);
+    pLabelResultsTxt->setStyleSheet("QLabel { text-decoration: underline; }");
+
+    m_pItemModel = new QStandardItemModel();
+    m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
+    m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
+
+    m_pResultTableView = new QTableView(this);
+    m_pResultTableView->setGeometry(QRect(this->width() * 0.51, ui->comboBoxLeagues->height() * 4, this->width() * 0.48, this->height() * 0.87));
+    m_pResultTableView->setModel(m_pItemModel);
+    m_pResultTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_pResultTableView->setColumnWidth(0, m_pResultTableView->width() * 0.50);
+    m_pResultTableView->setColumnWidth(1, m_pResultTableView->width() * 0.50);
+    m_pResultTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    m_pResultTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_pResultTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_pResultTableView->setSelectionMode(QAbstractItemView::SingleSelection);
 
     leagues.Leagues.append("England");
     leagues.Leagues.append("Spain");
@@ -162,8 +199,7 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
 
     // Bottom, Top margin
     int margin = 10;
-    // Width and Height to position the Labels and editTexts
-    int comboBoxWidth = ui->comboBoxLeagues->width();
+    // Height to position the Labels and editTexts
     int comboBoxHeight = ui->comboBoxLeagues->height() + margin;
 
     // Create as many EditText and Labels as teams are in the league
@@ -171,7 +207,7 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
     {
         // Add EditTexts
         QTextEdit* pEditText = new QTextEdit(this);
-        pEditText->setObjectName(QString::number(i));
+        pEditText->setObjectName("PlayerEditTxt" + QString::number(i));
         pEditText->setText("");
         pEditText->move(this->width() * 0.01, comboBoxHeight * (3 + i));
         pEditText->setStyleSheet("QPlainTextEdit { margin:100; }");
@@ -181,13 +217,58 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
 
         // Add Labels
         QLabel* pLabel = new QLabel(this);
-        pLabel->setObjectName(QString::number(i));
+        pLabel->setObjectName("Label" + QString::number(i));
         pLabel->setText(listOfTeams[i]);
         pLabel->move(this->width() * 0.27, comboBoxHeight * (3 + i));
         pLabel->setFont(defaultFont);
         pLabel->setMinimumWidth(200);
         pLabel->show();
-
         lLabel.append(pLabel);
+    }
+}
+
+void MainWindow::on_generateButton_clicked()
+{
+    // *****************************
+    // * ToDo: CLEAR RESULTS TABLE *
+    // *****************************
+
+    QStringList listOfPlayers;
+    for(int i = 0; i < lEditText.size(); ++i)
+    {
+        if(!lEditText[i]->toPlainText().isEmpty())
+        {
+            listOfPlayers.append(lEditText[i]->toPlainText());
+        }
+    }
+
+    int randPlayer = 0, randTeam = 0, rowIndex = 0;
+    QStringList tmpTeamList;
+    tmpTeamList = listOfTeams;
+
+    while (listOfPlayers.size() > 0)
+    {
+        randPlayer = qrand() % listOfPlayers.size();
+        randTeam = qrand() % tmpTeamList.size();
+
+        QStandardItem *tmpPlayerItem = new QStandardItem(listOfPlayers.at(randPlayer));
+        m_pItemModel->setItem(rowIndex, 0, tmpPlayerItem);
+        QStandardItem *tmpTeamItem = new QStandardItem(tmpTeamList.at(randTeam));
+        m_pItemModel->setItem(rowIndex, 1, tmpTeamItem);
+
+        if(rowIndex % 2 != 0)
+        {
+            tmpPlayerItem->setBackground(QBrush(QColor(220,220,220)));
+            tmpTeamItem->setBackground(QBrush(QColor(220,220,220)));
+        }
+        else
+        {
+            tmpPlayerItem->setBackground(QBrush(QColor(192,192,192)));
+            tmpTeamItem->setBackground(QBrush(QColor(192,192,192)));
+        }
+
+        listOfPlayers.removeAt(randPlayer);
+        tmpTeamList.removeAt(randTeam);
+        ++rowIndex;
     }
 }

@@ -6,7 +6,8 @@
 #include <QTextEdit>
 #include <QLabel>
 #include <QRectF>
-#include <QtGlobal>
+#include <QTableView>
+#include <QStandardItemModel>
 
 namespace Ui {
 class MainWindow;
@@ -24,8 +25,13 @@ private slots:
 
     void on_comboBoxLeagues_currentIndexChanged(int index);
 
+    void on_generateButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+
+    QTableView *m_pResultTableView;
+    QStandardItemModel *m_pItemModel;
 };
 
 #endif // MAINWINDOW_H
