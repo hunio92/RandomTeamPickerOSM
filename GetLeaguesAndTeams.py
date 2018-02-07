@@ -1,23 +1,23 @@
 from urllib.request import Request, urlopen
-from bs4 import BeautifulSoup as soup
-import sqlite3, time
+import simplejson as json
+import sqlite3
 
-# database = sqlite3.connect('database.db')
+database = sqlite3.connect('C:\\Users\hunor.orban\Documents\RandomTeamPickerOSM\database.db')
 
-# cursor = database.cursor()
-# cursor.execute('CREATE TABLE IF NOT EXISTS announcements(id	INTEGER PRIMARY KEY AUTOINCREMENT, link TEXT, img_link TEXT, price INTEGER, title TEXT, area TEXT, rooms INTEGER, surface TEXT, publishedBy TEXT, agency TEXT)')
+cursor = database.cursor()
+cursor.execute('DROP TABLE IF EXISTS leagues')
+cursor.execute('CREATE TABLE IF NOT EXISTS leagues(id INTEGER PRIMARY KEY AUTOINCREMENT, league_name TEXT, league_id TEXT, league_link TEXT)')
 
-url = 'https://en.onlinesoccermanager.com/LeagueTypes/';
-req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'})
-urlToScrap = urlopen(req).read()
-
-page_html = urlToScrap
-
-page_soup = soup(page_html, "lxml")
-
-containers = page_soup.findAll("table", {"class":"thSortable"})
-
-print(page_soup)
-#
-# cursor.close()
-# database.close()
+headers = { 'User-Agent' : 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_4; en-US) AppleWebKit/534.3 (KHTML, like Gecko) Chrome/6.0.472.63 Safari/534.3' }
+url = 'https://web-api.onlinesoccermanager.com/api/v1/leagueTypes';
+req = Request(url, None, headers)
+page_content = urlopen(req)
+parsed_content = page_content.read()
+page_content.close()
+jsonData = json.loads(parsed_content.decode('utf-8'))
+for i in range(len(jsonData)):
+    cursor.execute('INSERT INTO leagues (league_name, league_id, league_link) VALUES (?, ?, ?)', (jsonData[i]['name'], str(jsonData[i]['id']), "https://us.onlinesoccermanager.com/LeagueTypes/League/" + str(jsonData[i]['id'])))
+    database.commit()
+cursor.close()
+database.close()
+ 
