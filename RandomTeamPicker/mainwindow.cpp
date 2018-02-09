@@ -7,10 +7,12 @@ struct OSM
     QMap<QString, QStringList> LeagueAndTeams;
 };
 
+qint64 processID;
 OSM leagues;
 QStringList listOfTeams;
 QList<QLabel*> lLabel;
 QList<QTextEdit*> lEditText;
+QList<QStandardItemModel*> lQStandardItem;
 QFont defaultFont("Arial", 12, QFont::Bold);
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -26,6 +28,10 @@ MainWindow::MainWindow(QWidget *parent) :
     // ComboBox Leagues
     ui->comboBoxLeagues->setGeometry(QRect(this->width() * 0.20, this->height() * 0.01, 100, 30));
     ui->comboBoxLeagues->setFont(defaultFont);
+
+    // Push Button Update leagues
+    ui->updateButton->setGeometry(QRect(this->width() * 0.01, this->height() * 0.01, 150, 30));
+    ui->updateButton->setFont(defaultFont);
 
     // Push Button Generate
     ui->generateButton->setGeometry(QRect(this->width() * 0.70, this->height() * 0.01, 100, 30));
@@ -69,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     pLabelResultsTxt->setFont(defaultFont);
     pLabelResultsTxt->setStyleSheet("QLabel { text-decoration: underline; }");
 
+    // Results Table
     m_pItemModel = new QStandardItemModel();
     m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
     m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
@@ -169,6 +176,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    // Kill process if App closed
+    QString pidString;
+    pidString.setNum(processID);
+    QString killProcessUsingPid = "taskkill /PID ";
+    killProcessUsingPid.append(pidString);
+    system(killProcessUsingPid.toStdString().c_str());
+
     delete ui;
 }
 
@@ -229,9 +243,18 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
 
 void MainWindow::on_generateButton_clicked()
 {
-    // *****************************
-    // * ToDo: CLEAR RESULTS TABLE *
-    // *****************************
+    // ****************************************************************
+    // * ToDo: CLEAR RESULTS TABLE CORRECTLY NOT WITH: lQStandardItem *
+    // ****************************************************************
+
+    if(!lQStandardItem.isEmpty())
+    {
+        m_pItemModel = new QStandardItemModel();
+        m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
+        m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
+        m_pResultTableView->setModel(m_pItemModel);
+
+    }
 
     QStringList listOfPlayers;
     for(int i = 0; i < lEditText.size(); ++i)
@@ -255,6 +278,7 @@ void MainWindow::on_generateButton_clicked()
         m_pItemModel->setItem(rowIndex, 0, tmpPlayerItem);
         QStandardItem *tmpTeamItem = new QStandardItem(tmpTeamList.at(randTeam));
         m_pItemModel->setItem(rowIndex, 1, tmpTeamItem);
+        lQStandardItem.append(m_pItemModel);
 
         if(rowIndex % 2 != 0)
         {
@@ -271,4 +295,16 @@ void MainWindow::on_generateButton_clicked()
         tmpTeamList.removeAt(randTeam);
         ++rowIndex;
     }
+}
+
+void MainWindow::on_updateButton_clicked()
+{
+    QString path = QCoreApplication::applicationDirPath();
+    QString  command("python");
+    QStringList params = QStringList() << "GetLeaguesAndTeams.py";
+
+    QProcess *process = new QProcess();
+    process->startDetached(command, params, path, &processID);
+    process->waitForFinished();
+    process->close();
 }

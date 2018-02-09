@@ -8,6 +8,8 @@
 #include <QRectF>
 #include <QTableView>
 #include <QStandardItemModel>
+#include <QProcess>
+#include <QDir>
 
 namespace Ui {
 class MainWindow;
@@ -26,6 +28,8 @@ private slots:
     void on_comboBoxLeagues_currentIndexChanged(int index);
 
     void on_generateButton_clicked();
+
+    void on_updateButton_clicked();
 
 private:
     Ui::MainWindow *ui;
