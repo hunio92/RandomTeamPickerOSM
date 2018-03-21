@@ -10,7 +10,7 @@ struct OSM
 qint64 processID;
 OSM leagues;
 QStringList listOfTeams;
-QList<QLabel*> lLabel;
+QList<QCheckBox*> lCheckBox;
 QList<QTextEdit*> lEditText;
 QList<QStandardItemModel*> lQStandardItem;
 QFont defaultFont("Arial", 12, QFont::Bold);
@@ -176,12 +176,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    // Kill process if App closed
-    QString pidString;
-    pidString.setNum(processID);
-    QString killProcessUsingPid = "taskkill /PID ";
-    killProcessUsingPid.append(pidString);
-    system(killProcessUsingPid.toStdString().c_str());
+    // Kill process if called with startDetached App closed
+//    QString pidString;
+//    pidString.setNum(processID);
+//    QString killProcessUsingPid = "taskkill /PID ";
+//    killProcessUsingPid.append(pidString);
+//    system(killProcessUsingPid.toStdString().c_str());
 
     delete ui;
 }
@@ -192,17 +192,17 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
     Q_UNUSED(index);
 
     // Check if Label or EditText is not empty if so hide and clear
-    if(!lLabel.isEmpty() || !lEditText.isEmpty())
+    if(!lCheckBox.isEmpty() || !lEditText.isEmpty())
     {
         // Hide all old Labels and EditTexts
         for(int i = 0; i < listOfTeams.size(); ++i)
         {
-            lLabel[i]->hide();
+            lCheckBox[i]->hide();
             lEditText[i]->hide();
         }
 
         // Clear lists
-        lLabel.clear();
+        lCheckBox.clear();
         lEditText.clear();
     }
 
@@ -229,15 +229,27 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
         pEditText->show();
         lEditText.append(pEditText);
 
-        // Add Labels
-        QLabel* pLabel = new QLabel(this);
-        pLabel->setObjectName("Label" + QString::number(i));
-        pLabel->setText(listOfTeams[i]);
-        pLabel->move(this->width() * 0.27, comboBoxHeight * (3 + i));
-        pLabel->setFont(defaultFont);
-        pLabel->setMinimumWidth(200);
-        pLabel->show();
-        lLabel.append(pLabel);
+        QCheckBox *pCheckBox = new QCheckBox(this);
+        pCheckBox->setObjectName("Label" + QString::number(i));
+        pCheckBox->setText(listOfTeams[i]);
+        pCheckBox->setChecked(true);
+        pCheckBox->move(this->width() * 0.27, comboBoxHeight * (3 + i));
+        pCheckBox->setFont(defaultFont);
+        pCheckBox->setMinimumWidth(200);
+        pCheckBox->show();
+        lCheckBox.append(pCheckBox);
+
+        connect(pCheckBox, &QCheckBox::stateChanged, [=]() mutable
+        {
+            if(pCheckBox->checkState() == 0)
+            {
+                lEditText[i]->setDisabled(true);
+            }
+            else if(pCheckBox->checkState() == 2)
+            {
+                lEditText[i]->setDisabled(false);
+            }
+        });
     }
 }
 
@@ -253,21 +265,23 @@ void MainWindow::on_generateButton_clicked()
         m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
         m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
         m_pResultTableView->setModel(m_pItemModel);
-
     }
 
     QStringList listOfPlayers;
+    QStringList tmpTeamList;
     for(int i = 0; i < lEditText.size(); ++i)
     {
-        if(!lEditText[i]->toPlainText().isEmpty())
+        if(!lEditText[i]->toPlainText().isEmpty() && lEditText[i]->isEnabled())
         {
             listOfPlayers.append(lEditText[i]->toPlainText());
+        }
+        if(lCheckBox[i]->checkState() == 2)
+        {
+            tmpTeamList.append(lCheckBox[i]->text());
         }
     }
 
     int randPlayer = 0, randTeam = 0, rowIndex = 0;
-    QStringList tmpTeamList;
-    tmpTeamList = listOfTeams;
 
     while (listOfPlayers.size() > 0)
     {
@@ -299,12 +313,29 @@ void MainWindow::on_generateButton_clicked()
 
 void MainWindow::on_updateButton_clicked()
 {
+    QMovie *movie = new QMovie(":/images/please_wait.gif");
+    QLabel *processLabel = new QLabel(this);
+    processLabel->setGeometry(QRect(this->width() * 0.35, this->height() * 0.35, 265, 120));
+    processLabel->setMovie(movie);
+    processLabel->show();
+    movie->start();
+
+    this->setDisabled(true);
+
     QString path = QCoreApplication::applicationDirPath();
     QString  command("python");
     QStringList params = QStringList() << "GetLeaguesAndTeams.py";
 
     QProcess *process = new QProcess();
-    process->startDetached(command, params, path, &processID);
-    process->waitForFinished();
-    process->close();
+    process->setWorkingDirectory(path);
+//    process->startDetached(command, params, path, &processID);
+    process->start(command, params);
+    process->waitForStarted();
+    connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), [=]()
+    {
+        movie->stop();
+        processLabel->hide();
+        this->setDisabled(false);
+        process->close();
+    });
 }

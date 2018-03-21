@@ -10,6 +10,8 @@
 #include <QStandardItemModel>
 #include <QProcess>
 #include <QDir>
+#include <QMovie>
+#include <QCheckBox>
 
 namespace Ui {
 class MainWindow;
@@ -30,6 +32,9 @@ private slots:
     void on_generateButton_clicked();
 
     void on_updateButton_clicked();
+
+protected:
+//    friend class QProcess;
 
 private:
     Ui::MainWindow *ui;
