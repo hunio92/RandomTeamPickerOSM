@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QMovie>
 #include <QCheckBox>
+#include "dbmanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -41,6 +42,7 @@ private:
 
     QTableView *m_pResultTableView;
     QStandardItemModel *m_pItemModel;
+    DbManager* m_DbManager;
 };
 
 #endif // MAINWINDOW_H

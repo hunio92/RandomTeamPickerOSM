@@ -1,14 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-struct OSM
-{
-    QStringList Leagues;
-    QMap<QString, QStringList> LeagueAndTeams;
-};
+// *****************************************************************************************************
+// * ToDo: checkbox and edittext disable from last, database and python script to get the update right *
+// *****************************************************************************************************
 
 qint64 processID;
-OSM leagues;
+QStringList listOfLeagues;
 QStringList listOfTeams;
 QList<QCheckBox*> lCheckBox;
 QList<QTextEdit*> lEditText;
@@ -22,11 +20,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     this->setFixedSize(QSize(930, 950));
 
+    m_DbManager = new DbManager("database.db");
+
     QIcon icon(":/images/randomIcon.ico");
     this->setWindowIcon(icon);
 
     // ComboBox Leagues
-    ui->comboBoxLeagues->setGeometry(QRect(this->width() * 0.20, this->height() * 0.01, 100, 30));
+    ui->comboBoxLeagues->setGeometry(QRect(this->width() * 0.20, this->height() * 0.01, 260, 30));
     ui->comboBoxLeagues->setFont(defaultFont);
 
     // Push Button Update leagues
@@ -91,86 +91,11 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pResultTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_pResultTableView->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    leagues.Leagues.append("England");
-    leagues.Leagues.append("Spain");
-    leagues.Leagues.append("Italy");
+    listOfLeagues = m_DbManager->getLeagues();
 
-    // England
-    QStringList lEnglandTeams;
-    lEnglandTeams.append("Chelsea");
-    lEnglandTeams.append("Manchester City");
-    lEnglandTeams.append("Manchester United");
-    lEnglandTeams.append("Arsenal");
-    lEnglandTeams.append("Liverpool");
-    lEnglandTeams.append("Tottenham Hotspur");
-    lEnglandTeams.append("Everton");
-    lEnglandTeams.append("Leicester City");
-    lEnglandTeams.append("Southampton");
-    lEnglandTeams.append("West Ham United");
-    lEnglandTeams.append("Crystal Palace");
-    lEnglandTeams.append("Stoke City");
-    lEnglandTeams.append("Watford");
-    lEnglandTeams.append("West Bromwich Albion");
-    lEnglandTeams.append("Burnley");
-    lEnglandTeams.append("Newcastle United");
-    lEnglandTeams.append("Swansea City");
-    lEnglandTeams.append("Bournemouth");
-    lEnglandTeams.append("Brighton and Hove Albion");
-    lEnglandTeams.append("Huddersfield Town");
-
-    // Spain
-    QStringList lSpainTeams;
-    lSpainTeams.append("Barcelona");
-    lSpainTeams.append("Real Madrid");
-    lSpainTeams.append("Atlético Madrid");
-    lSpainTeams.append("Sevilla");
-    lSpainTeams.append("Valencia");
-    lSpainTeams.append("Athletic Bilbao");
-    lSpainTeams.append("Villarreal");
-    lSpainTeams.append("Celta de Vigo");
-    lSpainTeams.append("Real Sociedad");
-    lSpainTeams.append("Deportivo La Coruña");
-    lSpainTeams.append("Eibar");
-    lSpainTeams.append("Espanyol");
-    lSpainTeams.append("Málaga");
-    lSpainTeams.append("Real Betis");
-    lSpainTeams.append("Girona");
-    lSpainTeams.append("Leganés");
-    lSpainTeams.append("Alavés");
-    lSpainTeams.append("Getafe");
-    lSpainTeams.append("Las Palmas");
-    lSpainTeams.append("Levante");
-
-    // Italy
-    QStringList lItalyTeams;
-    lItalyTeams.append("Juventus");
-    lItalyTeams.append("Napoli");
-    lItalyTeams.append("Roma");
-    lItalyTeams.append("AC Milan");
-    lItalyTeams.append("Inter Milan");
-    lItalyTeams.append("Lazio");
-    lItalyTeams.append("Fiorentina");
-    lItalyTeams.append("Atalanta");
-    lItalyTeams.append("Sampdoria");
-    lItalyTeams.append("Torino");
-    lItalyTeams.append("Bologna");
-    lItalyTeams.append("Genoa");
-    lItalyTeams.append("Sassuolo");
-    lItalyTeams.append("Udinese");
-    lItalyTeams.append("Cagliari");
-    lItalyTeams.append("Chievo");
-    lItalyTeams.append("Verona");
-    lItalyTeams.append("Benevento");
-    lItalyTeams.append("Crotone");
-    lItalyTeams.append("SPAL");
-
-    leagues.LeagueAndTeams.insert(leagues.Leagues.at(0), lEnglandTeams);
-    leagues.LeagueAndTeams.insert(leagues.Leagues.at(1), lSpainTeams);
-    leagues.LeagueAndTeams.insert(leagues.Leagues.at(2), lItalyTeams);
-
-    for(int i = 0; i < leagues.Leagues.size(); ++i)
+    for(int i = 0; i < listOfLeagues.size(); ++i)
     {
-        ui->comboBoxLeagues->addItem(leagues.Leagues.at(i));
+        ui->comboBoxLeagues->addItem(listOfLeagues.at(i));
     }
 }
 
@@ -209,7 +134,7 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
     // Get selected item
     QString currentLeague = ui->comboBoxLeagues->currentText();
     // List of Teams
-    listOfTeams = leagues.LeagueAndTeams.value(currentLeague);
+    listOfTeams = m_DbManager->getTeams(currentLeague);
 
     // Bottom, Top margin
     int margin = 10;
