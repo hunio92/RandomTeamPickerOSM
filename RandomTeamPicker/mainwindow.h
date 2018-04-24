@@ -3,16 +3,15 @@
 
 #include <QMainWindow>
 #include <QDebug>
+#include <QProcess>
 #include <QTextEdit>
 #include <QLabel>
-#include <QRectF>
 #include <QTableView>
 #include <QStandardItemModel>
-#include <QProcess>
-#include <QDir>
 #include <QMovie>
 #include <QCheckBox>
 #include "dbmanager.h"
+#include "utility.h"
 
 namespace Ui {
 class MainWindow;
@@ -26,6 +25,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    QStringList m_listOfLeagues;
+    QStringList m_listOfTeams;
+    QList<QCheckBox*> m_lCheckBox;
+    QList<QTextEdit*> m_lEditText;
+
 private slots:
 
     void on_comboBoxLeagues_currentIndexChanged(int index);
@@ -34,15 +38,13 @@ private slots:
 
     void on_updateButton_clicked();
 
-protected:
-//    friend class QProcess;
-
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow* ui;
 
-    QTableView *m_pResultTableView;
-    QStandardItemModel *m_pItemModel;
+    QTableView* m_pResultTableView;
+    QStandardItemModel* m_pItemModel;
     DbManager* m_DbManager;
+    Utility* m_Utility;
 };
 
 #endif // MAINWINDOW_H

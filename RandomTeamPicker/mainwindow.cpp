@@ -2,25 +2,23 @@
 #include "ui_mainwindow.h"
 
 // *****************************************************************************************************
-// * ToDo: checkbox and edittext disable from last, database and python script to get the update right *
+// * ToDo: database and python script to get the update right *
+// * BUG: chenck/uncheck checkbox then switch league will continue where was *
 // *****************************************************************************************************
 
-qint64 processID;
-QStringList listOfLeagues;
-QStringList listOfTeams;
-QList<QCheckBox*> lCheckBox;
-QList<QTextEdit*> lEditText;
-QList<QStandardItemModel*> lQStandardItem;
 QFont defaultFont("Arial", 12, QFont::Bold);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    m_listOfLeagues(),
+    m_listOfTeams()
 {
     ui->setupUi(this);
     this->setFixedSize(QSize(930, 950));
 
     m_DbManager = new DbManager("database.db");
+    m_Utility = new Utility();
 
     QIcon icon(":/images/randomIcon.ico");
     this->setWindowIcon(icon);
@@ -91,23 +89,16 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pResultTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_pResultTableView->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    listOfLeagues = m_DbManager->getLeagues();
+    m_listOfLeagues = m_DbManager->getLeagues();
 
-    for(int i = 0; i < listOfLeagues.size(); ++i)
+    for(int i = 0; i < m_listOfLeagues.size(); ++i)
     {
-        ui->comboBoxLeagues->addItem(listOfLeagues.at(i));
+        ui->comboBoxLeagues->addItem(m_listOfLeagues.at(i));
     }
 }
 
 MainWindow::~MainWindow()
 {
-    // Kill process if called with startDetached App closed
-//    QString pidString;
-//    pidString.setNum(processID);
-//    QString killProcessUsingPid = "taskkill /PID ";
-//    killProcessUsingPid.append(pidString);
-//    system(killProcessUsingPid.toStdString().c_str());
-
     delete ui;
 }
 
@@ -116,93 +107,41 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
 {
     Q_UNUSED(index);
 
-    // Check if Label or EditText is not empty if so hide and clear
-    if(!lCheckBox.isEmpty() || !lEditText.isEmpty())
-    {
-        // Hide all old Labels and EditTexts
-        for(int i = 0; i < listOfTeams.size(); ++i)
-        {
-            lCheckBox[i]->hide();
-            lEditText[i]->hide();
-        }
-
-        // Clear lists
-        lCheckBox.clear();
-        lEditText.clear();
-    }
+    // When switch the team, hide unused CheckBoxes and EditTexts
+    m_Utility->hideIfEmpty(m_lCheckBox, m_lEditText, m_listOfTeams.size());
 
     // Get selected item
     QString currentLeague = ui->comboBoxLeagues->currentText();
     // List of Teams
-    listOfTeams = m_DbManager->getTeams(currentLeague);
+    m_listOfTeams = m_DbManager->getTeams(currentLeague);
 
-    // Bottom, Top margin
-    int margin = 10;
     // Height to position the Labels and editTexts
-    int comboBoxHeight = ui->comboBoxLeagues->height() + margin;
+    int comboBoxHeight = ui->comboBoxLeagues->height() + 10;
 
-    // Create as many EditText and Labels as teams are in the league
-    for(int i = 0; i < listOfTeams.size(); ++i)
-    {
-        // Add EditTexts
-        QTextEdit* pEditText = new QTextEdit(this);
-        pEditText->setObjectName("PlayerEditTxt" + QString::number(i));
-        pEditText->setText("");
-        pEditText->move(this->width() * 0.01, comboBoxHeight * (3 + i));
-        pEditText->setStyleSheet("QPlainTextEdit { margin:100; }");
-        pEditText->setMinimumWidth(this->width() * 0.23);
-        pEditText->show();
-        lEditText.append(pEditText);
-
-        QCheckBox *pCheckBox = new QCheckBox(this);
-        pCheckBox->setObjectName("Label" + QString::number(i));
-        pCheckBox->setText(listOfTeams[i]);
-        pCheckBox->setChecked(true);
-        pCheckBox->move(this->width() * 0.27, comboBoxHeight * (3 + i));
-        pCheckBox->setFont(defaultFont);
-        pCheckBox->setMinimumWidth(200);
-        pCheckBox->show();
-        lCheckBox.append(pCheckBox);
-
-        connect(pCheckBox, &QCheckBox::stateChanged, [=]() mutable
-        {
-            if(pCheckBox->checkState() == 0)
-            {
-                lEditText[i]->setDisabled(true);
-            }
-            else if(pCheckBox->checkState() == 2)
-            {
-                lEditText[i]->setDisabled(false);
-            }
-        });
-    }
+    // Create EditTests and popultea CheckBoxes with teams
+    m_Utility->createCheckBoxAndEditBox(m_lCheckBox, m_lEditText, m_listOfTeams, comboBoxHeight, this);
 }
 
 void MainWindow::on_generateButton_clicked()
 {
-    // ****************************************************************
-    // * ToDo: CLEAR RESULTS TABLE CORRECTLY NOT WITH: lQStandardItem *
-    // ****************************************************************
+    m_pItemModel = new QStandardItemModel();
+    m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
+    m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
+    m_pResultTableView->setModel(m_pItemModel);
 
-    if(!lQStandardItem.isEmpty())
-    {
-        m_pItemModel = new QStandardItemModel();
-        m_pItemModel->setHorizontalHeaderItem(0, new QStandardItem(QString("Player names")));
-        m_pItemModel->setHorizontalHeaderItem(1, new QStandardItem(QString("Team names")));
-        m_pResultTableView->setModel(m_pItemModel);
-    }
+//    m_Utility->init_ItemModel(m_pResultTableView);
 
     QStringList listOfPlayers;
     QStringList tmpTeamList;
-    for(int i = 0; i < lEditText.size(); ++i)
+    for(int i = 0; i < m_lEditText.size(); ++i)
     {
-        if(!lEditText[i]->toPlainText().isEmpty() && lEditText[i]->isEnabled())
+        if(!m_lEditText[i]->toPlainText().isEmpty() && m_lEditText[i]->isEnabled())
         {
-            listOfPlayers.append(lEditText[i]->toPlainText());
+            listOfPlayers.append(m_lEditText[i]->toPlainText());
         }
-        if(lCheckBox[i]->checkState() == 2)
+        if(m_lCheckBox[i]->checkState() == 2)
         {
-            tmpTeamList.append(lCheckBox[i]->text());
+            tmpTeamList.append(m_lCheckBox[i]->text());
         }
     }
 
@@ -217,7 +156,6 @@ void MainWindow::on_generateButton_clicked()
         m_pItemModel->setItem(rowIndex, 0, tmpPlayerItem);
         QStandardItem *tmpTeamItem = new QStandardItem(tmpTeamList.at(randTeam));
         m_pItemModel->setItem(rowIndex, 1, tmpTeamItem);
-        lQStandardItem.append(m_pItemModel);
 
         if(rowIndex % 2 != 0)
         {
@@ -253,7 +191,7 @@ void MainWindow::on_updateButton_clicked()
 
     QProcess *process = new QProcess();
     process->setWorkingDirectory(path);
-//    process->startDetached(command, params, path, &processID);
+    //    process->startDetached(command, params, path, &processID);
     process->start(command, params);
     process->waitForStarted();
     connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), [=]()
