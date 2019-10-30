@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_listOfTeams()
 {
     ui->setupUi(this);
-    this->setFixedSize(QSize(930, 950));
+    this->setFixedSize(QSize(930, 820));
 
     m_DbManager = new DbManager("database.db");
     m_Utility = new Utility();
@@ -116,7 +116,7 @@ void MainWindow::on_comboBoxLeagues_currentIndexChanged(int index)
     m_listOfTeams = m_DbManager->getTeams(currentLeague);
 
     // Height to position the Labels and editTexts
-    int comboBoxHeight = ui->comboBoxLeagues->height() + 10;
+    int comboBoxHeight = ui->comboBoxLeagues->height() + 5;
 
     // Create EditTests and popultea CheckBoxes with teams
     m_Utility->createCheckBoxAndEditBox(m_lCheckBox, m_lEditText, m_listOfTeams, comboBoxHeight, this);

@@ -1,5 +1,5 @@
 from urllib.request import Request, urlopen
-import simplejson as json
+import json as simplejson
 import sqlite3, time
 
 database = sqlite3.connect('database.db')
@@ -18,7 +18,7 @@ req = Request(url, None, headers)
 page_content = urlopen(req)
 parsed_content = page_content.read()
 page_content.close()
-jsonLeague = json.loads(parsed_content.decode('utf-8'))
+jsonLeague = simplejson.loads(parsed_content.decode('utf-8'))
 for i in range(len(jsonLeague)):
     cursor.execute('INSERT INTO leagues (league_id, league_name, league_link) VALUES (?, ?, ?)', (jsonLeague[i]['id'], jsonLeague[i]['name'], "https://us.onlinesoccermanager.com/LeagueTypes/League/" + str(jsonLeague[i]['id'])))
     url = 'https://web-api.onlinesoccermanager.com/api/v1/leagueTypes/' + str(jsonLeague[i]['id']) + '/teams'
@@ -26,7 +26,7 @@ for i in range(len(jsonLeague)):
     page_content = urlopen(req)
     parsed_content = page_content.read()
     page_content.close()
-    jsonTeams = json.loads(parsed_content.decode('utf-8'))
+    jsonTeams = simplejson.loads(parsed_content.decode('utf-8'))
     for j in range(len(jsonTeams)):
         cursor.execute('INSERT INTO teams (league_id, team_name) VALUES (?, ?)', (jsonLeague[i]['id'], jsonTeams[j]['name']))
     database.commit()
